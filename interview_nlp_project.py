@@ -32,7 +32,7 @@ X = vectorizer.fit_transform(df['cleaned_response'])
 lda = LatentDirichletAllocation(n_components=5, random_state=42)  # 5 topics
 lda.fit(X)
 
-words = vectorizer.get_feature_names_out()
+words = vectorizer.get_feature_names_out() 
 for i, topic in enumerate(lda.components_):
     print(f"\nPattern {i + 1}:")
     print([words[j] for j in topic.argsort()[-3:]])  # Top 3 words in each pattern
