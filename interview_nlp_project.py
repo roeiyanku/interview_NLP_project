@@ -1,39 +1,38 @@
+import pandas as pd
+import re
 import nltk
 from nltk.tokenize import word_tokenize
-from nltk.probability import FreqDist
 from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.decomposition import LatentDirichletAllocation
+
 nltk.download('punkt_tab')
 nltk.download('punkt')
 nltk.download('stopwords')
 
-# Example interview responses (answers from an interview with designers and developers)
-interview_responses = [
-    "I think the interface could be much more intuitive, especially for people who don't understand technology.",
-    "If there was a help button on the side, it would be much easier to understand how to use the product.",
-    "We could add an auto-correction function for the common errors, so users wouldn't have to contact technical support.",
-    "I would like the interface to be simpler, maybe with more guidance for users.",
-    "An auto-correction function would help reduce the need for technical support."
-]
+# load dataset
+df = pd.read_csv('design_interviews.csv')
 
 
 def clean_text(text):
-    #turn words to tokens
-    words = word_tokenize(text)
-
-    #delete irrelevent words
-    stop_words = set(stopwords.words('english'))
-    words = [word for word in words if word.lower() not in stop_words and word.isalpha()]
-    return words
+    text = text.lower()  # Convert to lowercase
+    text = re.sub(r'[^a-z\s]', '', text)  # Remove punctuation/numbers
+    words = word_tokenize(text)  # Tokenize words
+    words = [w for w in words if w not in stopwords.words('english')]  # Remove stopwords
+    return " ".join(words)
 
 
 # cleaning the text
-cleaned_responses = []
-for response in interview_responses:
-    cleaned_responses.extend(clean_text(response))
+df['cleaned_response'] = df['Response'].astype(str).apply(clean_text)
 
-freq_dist = FreqDist(cleaned_responses)
 
-#Display
-print("Patterns found:")
-for word,freq in freq_dist.most_common(5):
-    print(f"{word}: {freq}")
+vectorizer = CountVectorizer(max_features=1000)  # Limit to top 1000 words
+X = vectorizer.fit_transform(df['cleaned_response'])
+
+lda = LatentDirichletAllocation(n_components=5, random_state=42)  # 5 topics
+lda.fit(X)
+
+words = vectorizer.get_feature_names_out()
+for i, topic in enumerate(lda.components_):
+    print(f"\nPattern {i + 1}:")
+    print([words[j] for j in topic.argsort()[-3:]])  # Top 3 words in each pattern
